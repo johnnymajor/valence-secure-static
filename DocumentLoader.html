@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Document Loader</title>
+    <style>
+        /* Load Spinner Styles */
+        
+        #loader {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            z-index: 1;
+            width: 150px;
+            height: 150px;
+            margin: -75px 0 0 -75px;
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 120px;
+            height: 120px;
+            -webkit-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+        }
+        
+        @-webkit-keyframes spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        /* Add animation to "page content" */
+        
+        .animate-bottom {
+            position: relative;
+            -webkit-animation-name: animatebottom;
+            -webkit-animation-duration: 1s;
+            animation-name: animatebottom;
+            animation-duration: 1s
+        }
+        
+        @-webkit-keyframes animatebottom {
+            from {
+                bottom: -100px;
+                opacity: 0
+            }
+            to {
+                bottom: 0px;
+                opacity: 1
+            }
+        }
+        
+        @keyframes animatebottom {
+            from {
+                bottom: -100px;
+                opacity: 0
+            }
+            to {
+                bottom: 0;
+                opacity: 1
+            }
+        }
+    </style>
+    <script src="/resources/valence-debug.js"></script>
+    <script>
+        // load the requested html document
+        //
+        function loadDocument() {
+            var action = Valence.getUrlParam('action');
+
+            // get the action from the url to use. This way we can reuse the same html document
+            //  to load any html files based on an action
+            //
+            if (!Valence.isEmpty(action)) {
+                // create AJAX Request
+                //
+                var httpRequest = new XMLHttpRequest();
+
+                httpRequest.onreadystatechange = responseFnc;
+                // RPG Call
+                httpRequest.open('GET', '/valence/vvcall.pgm?pgm=RPGPGM&action=' + action);  //! Replace RPGPGM with your RPG Program on IBM i
+                
+                // NodeJs valence-connect 
+                //
+                //var baseHost = window.location.protocol + "//" + window.location.hostname;
+                //httpRequest.open('GET', baseHost + ':NODEPORT/valence/getHtmlDocument?action=' + action); //! Replace NODEPORT with your nodejs port number
+                
+                httpRequest.send();
+
+                // AJAX response handler
+                //
+                function responseFnc() {
+                    function showError(msg) {
+                        if (Valence.isEmpty(msg)) {
+                            msg = 'There was a problem with the request.';
+                        }
+
+                        Valence.util.Helper.showDialog('Error', msg, 'OK');
+                    }
+
+                    // hide the load spinner
+                    //
+                    document.getElementById('loader').style.display = 'none';
+
+                    if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                        if (httpRequest.status === 200) {
+                            // try and decode the response this would only happen if the
+                            //  backend responds with an error
+                            try {
+                                var rspParams = JSON.parse(httpRequest.responseText);
+                                if (!Valence.isEmpty(rspParams) && !Valence.isEmpty(rspParams.msg)) {
+                                    showError(rspParams.msg);
+                                } else {
+                                    showError();
+                                }
+                            } catch (e) {
+                                // overwrite the current document with the html document
+                                //  sent from the backend
+                                //
+                                document.open();
+                                document.write(httpRequest.responseText);
+                                document.close();
+                            }
+                        } else {
+                            if (httpRequest.status === 569 && (!Valence.inPortal() && !Valence.mobile.Access.isNativePortal())) {
+                                // if not running in the portal show specific message
+                                //
+                                showError('Invalid session. Must be logged into the portal to access this content.');
+                            }
+                        }
+                    }
+                }
+            } else {
+                showError('Action parameter must be set on the app record in Valence.')
+            }
+        }
+    </script>
+</head>
+
+<body onload="loadDocument()">
+    <div id="loader"></div>
+</body>
+
+</html>
