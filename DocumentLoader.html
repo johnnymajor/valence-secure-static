@@ -81,6 +81,14 @@
         function loadDocument() {
             var action = Valence.getUrlParam('action');
 
+            function showError(msg) {
+                if (Valence.isEmpty(msg)) {
+                    msg = 'There was a problem with the request.';
+                }
+
+                Valence.util.Helper.showDialog('Error', msg, 'OK');
+            }
+
             // get the action from the url to use. This way we can reuse the same html document
             //  to load any html files based on an action
             //
@@ -103,14 +111,6 @@
                 // AJAX response handler
                 //
                 function responseFnc() {
-                    function showError(msg) {
-                        if (Valence.isEmpty(msg)) {
-                            msg = 'There was a problem with the request.';
-                        }
-
-                        Valence.util.Helper.showDialog('Error', msg, 'OK');
-                    }
-
                     // hide the load spinner
                     //
                     document.getElementById('loader').style.display = 'none';
